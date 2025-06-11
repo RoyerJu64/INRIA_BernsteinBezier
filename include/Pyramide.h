@@ -5,6 +5,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <cassert>
+#include <map>
 
 class Pyramide
 {
@@ -14,6 +15,7 @@ public:
 
     void genererNoeuds();
     void genererTriplets();
+    void genererTripletToIndex();
 
     static unsigned long long factorial(int n);
     static unsigned long long binomial(int n, int i);
@@ -39,6 +41,7 @@ public:
 
     std::vector<std::tuple<double, double, double>> getNoeuds();
     std::vector<std::tuple<int, int, int>> getTriplets();
+    std::map<std::tuple<int, int, int>, int> getTripletToIndex();
 
 
 private:
@@ -46,5 +49,7 @@ private:
     int nbNoeuds;
     std::vector<std::tuple<double, double, double>> noeuds;
     std::vector<std::tuple<int, int, int>> triplets;
+    std::map<std::tuple<int, int, int>, int> tripletToIndex;
+
 };
 

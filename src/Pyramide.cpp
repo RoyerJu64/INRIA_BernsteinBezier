@@ -4,6 +4,7 @@ Pyramide::Pyramide(int ordre) : ordre(ordre), nbNoeuds(0)
 {
 	genererNoeuds();
     genererTriplets();
+    genererTripletToIndex();
 	nbNoeuds = noeuds.size();
 }
 
@@ -52,6 +53,21 @@ void Pyramide::genererTriplets()
         for (int i = 0; i <= max_ij; ++i) {
             for (int j = 0; j <= max_ij; ++j) {
                 triplets.emplace_back(i, j, k);
+            }
+        }
+    }
+}
+
+void Pyramide::genererTripletToIndex()
+{
+    tripletToIndex.clear();
+    int c = 0;
+    for (int k = 0; k <= ordre; ++k) {
+        int max_ij = ordre - k;
+        for (int i = 0; i <= max_ij; ++i) {
+            for (int j = 0; j <= max_ij; ++j) {
+                tripletToIndex.emplace(std::make_tuple(i, j, k), c);
+                ++c;
             }
         }
     }
@@ -167,13 +183,13 @@ double Pyramide::compute_Mijklmn(int i, int j, int k, int l, int m, int n, int N
         double a = a_pts[qa];
         double wa = a_wts[qa];
         double Bi_a = bernstein(i, N-k, a); // B_i^{N-k}(a)
-        double Bl_a = bernstein(l, N-k, a); // B_l^{N-k}(a)
+        double Bl_a = bernstein(l, N-n, a); // B_l^{N-n}(a)
 
         for (int qb = 0; qb < Q; ++qb) {
             double b = b_pts[qb];
             double wb = b_wts[qb];
             double Bj_b = bernstein(j, N-k, b); // B_j^{N-k}(b)
-            double Bm_b = bernstein(m, N-k, b); // B_m^{N-k}(b)
+            double Bm_b = bernstein(m, N-n, b); // B_m^{N-k}(b)
             double J_val = J(a, b); // Bilinear Jacobian
 
             for (int qc = 0; qc < Q; ++qc) {
@@ -204,10 +220,7 @@ std::vector<std::vector<double>> Pyramide::calculerMatriceMasse()
                 for (int j = 0; j < ordre - k + 1; j++) {
                     for (int m = 0; m < ordre - n + 1; m++) {
                         for (int l = 0; l < ordre - n + 1; l++) {
-                            
-                            // calculer les coeffs de la matrice en (ijklmn)
-                            // mais comment les stocker correctement dans M ?
-
+                            M[tripletToIndex[std::make_tuple(i,j,k)]][tripletToIndex[std::make_tuple(l,m,n)]] += compute_Mijklmn(i,j,k,l,m,n,ordre,4);
                         }
                     }
                 }
@@ -286,4 +299,9 @@ std::vector<std::tuple<double, double, double>> Pyramide::getNoeuds()
 std::vector<std::tuple<int, int, int>> Pyramide::getTriplets()
 {
     return triplets;
+}
+
+std::map<std::tuple<int, int, int>, int> Pyramide::getTripletToIndex()
+{
+    return tripletToIndex;
 }
