@@ -73,26 +73,12 @@ void Pyramide::genererTripletToIndex()
     }
 }
 
-unsigned long long Pyramide::factorial(int n)
-{
-    assert(n >= 0);
-    unsigned long long result = 1;
-    for (int i = 2; i <= n; ++i)
-        result *= i;
-    return result;
-}
 
-unsigned long long Pyramide::binomial(int n, int k)
-{
-    assert(n >= 0 && k >= 0 && k <= n);
-    return factorial(n) / (factorial(k) * factorial(n - k));
-}
-
-double Pyramide::bernstein(int k, int N, double t)
-{
-    // B_k^n(t)
+double Pyramide::bernstein(int i, int n, double t) {
+     // B_i^n(t)
     assert(t >= 0.0 && t <= 1.0);
-    return binomial(N, k) * std::pow(t, k) * std::pow(1.0 - t, N - k);
+    using boost::math::binomial_coefficient;
+    return binomial_coefficient<double>(n, i) * std::pow(t, i) * std::pow(1 - t, n - i);
 }
 
 std::vector<double> Pyramide::baseBernsteinCube(double x, double y, double z)
@@ -210,9 +196,9 @@ double Pyramide::compute_Mijklmn(int i, int j, int k, int l, int m, int n, int N
     return M;
 }
 
-std::vector<std::vector<double>> Pyramide::calculerMatriceMasse()
+Eigen::MatrixXd Pyramide::calculerMatriceMasse()
 {   
-    std::vector<std::vector<double>> M(nbNoeuds, std::vector<double>(nbNoeuds, 0.0));
+    Eigen::MatrixXd M(nbNoeuds, nbNoeuds);
     
     for (int k = 0; k <= ordre + 1; k++) {
         for (int n = 0; n < ordre + 1; n++) {
@@ -220,7 +206,7 @@ std::vector<std::vector<double>> Pyramide::calculerMatriceMasse()
                 for (int j = 0; j < ordre - k + 1; j++) {
                     for (int m = 0; m < ordre - n + 1; m++) {
                         for (int l = 0; l < ordre - n + 1; l++) {
-                            M[tripletToIndex[std::make_tuple(i,j,k)]][tripletToIndex[std::make_tuple(l,m,n)]] += compute_Mijklmn(i,j,k,l,m,n,ordre,4);
+                            M(tripletToIndex[std::make_tuple(i,j,k)],tripletToIndex[std::make_tuple(l,m,n)]) = compute_Mijklmn(i,j,k,l,m,n,ordre,4);
                         }
                     }
                 }
@@ -230,66 +216,7 @@ std::vector<std::vector<double>> Pyramide::calculerMatriceMasse()
     return M;
 }
 
-void Pyramide::afficherMatrice(const std::vector<std::vector<double>>& mat)
-{
-    for (const auto& ligne : mat) {
-        for (double val : ligne) {
-            std::cout << val << " ";
-        }
-        std::cout << std::endl;
-    }
-}
 
-std::vector<std::vector<double>> Pyramide::inverseMatrix(const std::vector<std::vector<double>>& mat)
-{
-    int n = mat.size();
-    if (n == 0 || mat[0].size() != n)
-        throw std::invalid_argument("Matrix must be square and non-empty.");
-
-    // Initialiser les matrices
-    std::vector<std::vector<double>> A = mat;
-    std::vector<std::vector<double>> I(n, std::vector<double>(n, 0.0));
-
-    for (int i = 0; i < n; ++i)
-        I[i][i] = 1.0;  // Matrice identité
-
-    // Gauss-Jordan
-    for (int i = 0; i < n; ++i) {
-        // Pivot partiel
-        double maxEl = std::abs(A[i][i]);
-        int maxRow = i;
-        for (int k = i + 1; k < n; ++k) {
-            if (std::abs(A[k][i]) > maxEl) {
-                maxEl = std::abs(A[k][i]);
-                maxRow = k;
-            }
-        }
-        if (std::abs(maxEl) < 1e-12)
-            throw std::runtime_error("Matrix is singular or nearly singular.");
-
-        std::swap(A[i], A[maxRow]);
-        std::swap(I[i], I[maxRow]);
-
-        // Normaliser la ligne
-        double diag = A[i][i];
-        for (int j = 0; j < n; ++j) {
-            A[i][j] /= diag;
-            I[i][j] /= diag;
-        }
-
-        // Eliminer les autres lignes
-        for (int k = 0; k < n; ++k) {
-            if (k == i) continue;
-            double factor = A[k][i];
-            for (int j = 0; j < n; ++j) {
-                A[k][j] -= factor * A[i][j];
-                I[k][j] -= factor * I[i][j];
-            }
-        }
-    }
-
-    return I;
-}
 
 std::vector<std::tuple<double, double, double>> Pyramide::getNoeuds()
 {

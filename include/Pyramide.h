@@ -6,6 +6,9 @@
 #include <stdexcept>
 #include <cassert>
 #include <map>
+#include <boost/math/special_functions/factorials.hpp>
+#include <boost/math/special_functions/binomial.hpp>
+#include <Eigen/Dense>
 
 class Pyramide
 {
@@ -17,10 +20,7 @@ public:
     void genererTriplets();
     void genererTripletToIndex();
 
-    static unsigned long long factorial(int n);
-    static unsigned long long binomial(int n, int i);
-    static double bernstein(int i, int n, double t);
-
+    double bernstein(int i, int n, double t);
     std::vector<double> baseBernsteinCube(double x, double y, double z);
     std::vector<double> baseBernsteinPyramide(double x, double y, double z);
 
@@ -34,10 +34,7 @@ public:
     double compute_Mijklmn(int i, int j, int k, int l, int m, int n, int N, int Q);
 
     // Calcul de la matrice de masse
-    std::vector<std::vector<double>> calculerMatriceMasse();
-
-    static void afficherMatrice(const std::vector<std::vector<double>>& mat);
-    static std::vector<std::vector<double>> inverseMatrix(const std::vector<std::vector<double>>& mat);
+    Eigen::MatrixXd calculerMatriceMasse();
 
     std::vector<std::tuple<double, double, double>> getNoeuds();
     std::vector<std::tuple<int, int, int>> getTriplets();

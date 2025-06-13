@@ -41,7 +41,7 @@ int main() {
 
     auto M = a.calculerMatriceMasse();
     cout << "\n\n\nMatrice de masse : \n" << endl;
-    Pyramide::afficherMatrice(M);
+    cout << M << endl;
 
 
 	return 0;
