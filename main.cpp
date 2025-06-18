@@ -44,5 +44,11 @@ int main() {
     cout << M << endl;
 
 
+        Eigen::VectorXd ones = Eigen::VectorXd::Ones(M.rows());
+        double V = ones.transpose() * M * ones;
+
+        std::cout << "Ordre " << 1 << " : V = " << V << ", attendu = " << 1.0/3.0 << std::endl;
+
+
 	return 0;
 }

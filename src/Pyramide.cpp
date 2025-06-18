@@ -109,7 +109,7 @@ void Pyramide::gauss_legendre(int Q, std::vector<double>& points, std::vector<do
 {
     points.resize(Q);
     weights.resize(Q);
-    
+
     if (Q == 4) {
         points = { -0.8611363116, -0.3399810436, 0.3399810436, 0.8611363116 };
         weights = { 0.3478548451, 0.6521451549, 0.6521451549, 0.3478548451 };
@@ -130,22 +130,8 @@ void Pyramide::gauss_jacobi(int Q, double alpha, double beta, std::vector<double
     weights.resize(Q);
 
     if (Q == 4 && std::abs(alpha - 2.0) < 1e-10 && std::abs(beta - 0.0) < 1e-10) {
-        points = {
-            -0.6167071458,
-            -0.1656632050,
-             0.2852315165,
-             0.6888754087
-        };
-        weights = {
-            0.1654099274,
-            0.3895801273,
-            0.3482550502,
-            0.0967548951
-        };
-        for (int i = 0; i < Q; ++i) {
-            points[i] = 0.5 * (1.0 + points[i]);     // Transformation vers [0,1]
-            weights[i] = 0.5 * weights[i];            // Ajustement du poids
-        }
+        points = {0.04850,0.23860,0.51705,0.79585};
+        weights = {0.11089,0.14346,0.06863,0.01035};
     }
     else {
         std::cerr << "Gauss-Jacobi: ordre non supporté (Q = " << Q << ", alpha = " << alpha << ", beta = " << beta << ")\n";
@@ -167,12 +153,14 @@ double Pyramide::compute_Mijklmn(int i, int j, int k, int l, int m, int n, int N
 
     for (int qa = 0; qa < Q; ++qa) {
         double a = a_pts[qa];
+                double c = c_pts[qa];
         double wa = a_wts[qa];
         double Bi_a = bernstein(i, N-k, a); // B_i^{N-k}(a)
         double Bl_a = bernstein(l, N-n, a); // B_l^{N-n}(a)
 
         for (int qb = 0; qb < Q; ++qb) {
             double b = b_pts[qb];
+                double c = c_pts[qb];
             double wb = b_wts[qb];
             double Bj_b = bernstein(j, N-k, b); // B_j^{N-k}(b)
             double Bm_b = bernstein(m, N-n, b); // B_m^{N-k}(b)
@@ -197,9 +185,9 @@ double Pyramide::compute_Mijklmn(int i, int j, int k, int l, int m, int n, int N
 }
 
 Eigen::MatrixXd Pyramide::calculerMatriceMasse()
-{   
+{
     Eigen::MatrixXd M(nbNoeuds, nbNoeuds);
-    
+
     for (int k = 0; k <= ordre + 1; k++) {
         for (int n = 0; n < ordre + 1; n++) {
             for (int i = 0; i < ordre - k + 1; i++) {
