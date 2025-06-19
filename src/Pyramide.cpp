@@ -81,6 +81,20 @@ double Pyramide::bernstein(int i, int n, double t) {
     return binomial_coefficient<double>(n, i) * std::pow(t, i) * std::pow(1 - t, n - i);
 }
 
+double Pyramide::dBernstein(int i, int n, double t)
+{
+    if (n == 0) return 0.0;
+
+    if (i < 0 || i > n) return 0.0;
+    if (i == 0)
+        return -n * bernstein(0, n - 1, t);
+    else if (i == n)
+        return n * bernstein(n - 1, n - 1, t);
+    else
+        return n * (bernstein(i - 1, n - 1, t) - bernstein(i, n - 1, t));
+}
+
+
 std::vector<double> Pyramide::baseBernsteinCube(double x, double y, double z)
 {
     std::vector<double> values;
@@ -99,6 +113,40 @@ std::vector<double> Pyramide::baseBernsteinPyramide(double x, double y, double z
 {
     return baseBernsteinCube(x/(1-z), y/(1-z), z);
 }
+
+Eigen::Vector3d Pyramide::gradientBernsteinPyramid(int i, int j, int k, double a, double b, double c)
+{   
+    Eigen::Vector3d grad;
+    int N = ordre; // degré de la pyramide
+    if (c == 1.0) return Eigen::Vector3d::Zero(); // éviter division par 0
+
+    int Nk = N - k;
+
+    // Fonctions de base
+    double Bi_a = bernstein(i, Nk, a);         // B^{N-k}_i(a)
+    double Bj_b = bernstein(j, Nk, b);         // B^{N-k}_j(b)
+    double Bk_c = bernstein(k, N,  c);         // B^N_k(c)
+
+    // Dérivées 1D (avec précautions aux bornes)
+    double dBi_a = dBernstein(i, Nk, a);
+    double dBj_b = dBernstein(j, Nk, b);
+    double dBk_c = dBernstein(k, N,  c);
+
+
+    // Gradient en coordonnées physiques (r, s, t)
+    double grad_r = (1.0 / (1.0 - c)) * dBi_a * Bj_b * Bk_c;
+    double grad_s = (1.0 / (1.0 - c)) * Bi_a * dBj_b * Bk_c;
+    double grad_t =
+        (a / (1.0 - c)) * dBi_a * Bj_b * Bk_c +
+        (b / (1.0 - c)) * Bi_a * dBj_b * Bk_c +
+        Bi_a * Bj_b * dBk_c;
+
+    grad << grad_r, grad_s, grad_t;
+
+    return grad;
+}
+
+
 
 double Pyramide::J(double a, double b)
 {
@@ -184,6 +232,47 @@ double Pyramide::compute_Mijklmn(int i, int j, int k, int l, int m, int n, int N
     return M;
 }
 
+double Pyramide::compute_Kijklmn(int i, int j, int k, int l, int m, int n, int N, int Q)
+{
+    std::vector<double> a_pts(Q), a_wts(Q);
+    std::vector<double> b_pts(Q), b_wts(Q);
+    std::vector<double> c_pts(Q), c_wts(Q);
+
+    gauss_legendre(Q, a_pts, a_wts);
+    gauss_legendre(Q, b_pts, b_wts);
+    gauss_jacobi(Q, 2.0, 0.0, c_pts, c_wts); // poids (1-c)^2
+
+    double K = 0.0;
+
+    for (int qa = 0; qa < Q; ++qa) {
+        double a = a_pts[qa];
+        double wa = a_wts[qa];
+
+        for (int qb = 0; qb < Q; ++qb) {
+            double b = b_pts[qb];
+            double wb = b_wts[qb];
+
+            double J_val = J(a, b); // Jacobien (supposé bilinéaire et constant en c)
+
+            for (int qc = 0; qc < Q; ++qc) {
+                double c = c_pts[qc];
+                double wc = c_wts[qc];
+
+                // Gradients des fonctions de base
+                Eigen::Vector3d grad_f = gradientBernsteinPyramid(i, j, k, a, b, c);
+                Eigen::Vector3d grad_g = gradientBernsteinPyramid(l, m, n, a, b, c);
+
+                // Produit scalaire des gradients
+                double dot_grad = grad_f.dot(grad_g);
+
+                K += wa * wb * wc * dot_grad * J_val;
+            }
+        }
+    }
+
+    return K;
+}
+
 Eigen::MatrixXd Pyramide::calculerMatriceMasse()
 {
     Eigen::MatrixXd M(nbNoeuds, nbNoeuds);
@@ -204,6 +293,28 @@ Eigen::MatrixXd Pyramide::calculerMatriceMasse()
     return M;
 }
 
+Eigen::MatrixXd Pyramide::calculerMatriceRaideur()
+{
+    Eigen::MatrixXd K(nbNoeuds, nbNoeuds);
+
+    for (int k = 0; k <= ordre; ++k) {
+        for (int n = 0; n <= ordre; ++n) {
+            for (int i = 0; i <= ordre - k; ++i) {
+                for (int j = 0; j <= ordre - k; ++j) {
+                    for (int l = 0; l <= ordre - n; ++l) {
+                        for (int m = 0; m <= ordre - n; ++m) {
+                            int idx1 = tripletToIndex[std::make_tuple(i, j, k)];
+                            int idx2 = tripletToIndex[std::make_tuple(l, m, n)];
+                            K(idx1, idx2) = compute_Kijklmn(i, j, k, l, m, n, ordre, 4);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return K;
+}
 
 
 std::vector<std::tuple<double, double, double>> Pyramide::getNoeuds()
